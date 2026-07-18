@@ -341,11 +341,11 @@
 
   .data-actions {
     display: flex;
-    flex-direction: column;
     gap: 12px;
     margin-top: 8px;
   }
   .btn-export, .btn-import {
+    flex: 1;
     padding: 10px 16px;
     border: 2px solid #d0d0d0;
     border-radius: 8px;
@@ -758,7 +758,11 @@ function renderRecords() {
           renderRecords();
           showToast('已刪除記錄', 'success');
         } catch(e) {
-          showToast('❌ 刪除失敗：' + e.message, 'error');
+          // 刪除失敗但前端已移除，重新抓資料
+          showToast('⚠ 刪除異常，重新整理資料', 'error');
+          await fetchRecords();
+          renderCalendar();
+          renderRecords();
         }
       }
     });
