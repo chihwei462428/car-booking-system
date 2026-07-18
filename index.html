@@ -743,7 +743,7 @@ function renderRecords() {
         <div class="record-room">${r.name}</div>
         <div class="record-date">${dateText}</div>
       </div>
-      <button class="btn-delete" data-index="${origIndex}" data-sheetid="${r.id || ''}" title="刪除記錄">🗑</button>
+      <button class="btn-delete" data-index="${origIndex}" data-sheetid="${r.id !== undefined ? r.id : ''}" title="刪除記錄">🗑</button>
     </li>`;
   }
   recordList.innerHTML = html;
@@ -751,9 +751,8 @@ function renderRecords() {
   // 綁定刪除事件
   document.querySelectorAll('.btn-delete').forEach(btn => {
     btn.addEventListener('click', async function() {
-      const idx = parseInt(this.dataset.index);
-      const sheetId = this.dataset.sheetid ? parseInt(this.dataset.sheetid) : null;
-      if (!sheetId) return;
+      const sheetId = parseInt(this.dataset.sheetid);
+      if (isNaN(sheetId)) return;
       if (confirm('確定刪除此筆借車記錄？')) {
         try {
           await deleteRecord(sheetId);
