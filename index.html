@@ -363,6 +363,7 @@
     color: #4a90d9;
   }
   .file-input-wrapper {
+    flex: 1;
     position: relative;
   }
   .file-input-wrapper input[type="file"] {
@@ -741,7 +742,7 @@ function renderRecords() {
         <div class="record-room">${r.name}</div>
         <div class="record-date">${dateText}</div>
       </div>
-      <button class="btn-delete" data-index="${origIndex}" title="刪除記錄">🗑</button>
+      <button class="btn-delete" data-index="${origIndex}" data-sheetid="${r.id || ''}" title="刪除記錄">🗑</button>
     </li>`;
   }
   recordList.innerHTML = html;
@@ -750,19 +751,17 @@ function renderRecords() {
   document.querySelectorAll('.btn-delete').forEach(btn => {
     btn.addEventListener('click', async function() {
       const idx = parseInt(this.dataset.index);
+      const sheetId = this.dataset.sheetid ? parseInt(this.dataset.sheetid) : null;
       if (confirm('確定刪除此筆借車記錄？')) {
+        records.splice(idx, 1);
+        renderCalendar();
+        renderRecords();
+        showToast('已刪除記錄', 'success');
+        // 背景同步刪除到試算表
         try {
-          await deleteRecord(idx);
-          records.splice(idx, 1);
-          renderCalendar();
-          renderRecords();
-          showToast('已刪除記錄', 'success');
+          if (sheetId) await deleteRecord(sheetId);
         } catch(e) {
-          // 刪除失敗但前端已移除，重新抓資料
-          showToast('⚠ 刪除異常，重新整理資料', 'error');
-          await fetchRecords();
-          renderCalendar();
-          renderRecords();
+          console.error('刪除同步失敗', e);
         }
       }
     });
