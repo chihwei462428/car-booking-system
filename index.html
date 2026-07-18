@@ -778,7 +778,7 @@ function showToast(msg, type = 'success') {
   toast.textContent = msg;
   toast.className = 'toast ' + type + ' show';
   clearTimeout(toastTimer);
-  var duration = type === 'loading' ? 100000 : 3000;
+  var duration = type === 'loading' ? 100000 : 5000;
   toastTimer = setTimeout(() => {
     toast.classList.remove('show');
   }, duration);
