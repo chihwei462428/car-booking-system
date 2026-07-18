@@ -712,7 +712,19 @@ function renderCalendar() {
       // 設定篩選日期並刷新記錄列表
       const d = parseDateStr(dateStr);
       if (d) {
-        filterDate = d;
+        // 檢查該日期是否有記錄
+        const hasRecord = records.some(r => {
+          const s = parseDateStr(r.startDate);
+          const start = new Date(s.year, s.month, s.day);
+          const end = new Date(s.year, s.month, s.day + r.days - 1);
+          const check = new Date(d.year, d.month, d.day);
+          return check >= start && check <= end;
+        });
+        if (hasRecord) {
+          filterDate = d;
+        } else {
+          filterDate = null;
+        }
         renderRecords();
       }
     });
