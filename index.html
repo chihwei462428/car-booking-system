@@ -384,8 +384,14 @@
     .bottom-section { grid-template-columns: 1fr; }
     .app-container { padding: 0; }
     body { padding: 10px; }
-    .calendar-card { overflow-x: auto; }
-    .calendar-grid { min-width: 280px; }
+    .calendar-card { overflow-x: hidden; }
+    .calendar-grid { min-width: unset; gap: 1px; }
+    .cal-day { aspect-ratio: unset; min-height: 36px; font-size: 12px; }
+    .cal-day-label { font-size: 11px; }
+    .cal-day.badge-大房 .cal-day-label::after,
+    .cal-day.badge-二房 .cal-day-label::after,
+    .cal-day.badge-三房 .cal-day-label::after { font-size: 8px; }
+    .cal-day-header { font-size: 10px; padding: 2px 0; }
   }
 </style>
 </head>
