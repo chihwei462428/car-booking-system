@@ -822,6 +822,9 @@ async function handleSubmit() {
 
   try {
     await addRecord(name, startDate, days);
+    await fetchRecords(); // 重新抓資料拿到 id
+    renderCalendar();
+    renderRecords();
   } catch(e) {
     showToast('⚠ 已登記，但同步資料庫失敗：' + e.message, 'error');
   } finally {
