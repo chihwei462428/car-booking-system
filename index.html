@@ -144,6 +144,29 @@
     font-family: inherit;
   }
 
+  .days-buttons {
+    display: flex;
+    gap: 8px;
+  }
+  .day-btn {
+    flex: 1;
+    padding: 8px 0;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    background: #f5f5f5;
+    color: #666;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .day-btn:hover { border-color: #b0b0b0; }
+  .day-btn.active {
+    background: #4a90d9;
+    color: #fff;
+    border-color: #4a90d9;
+  }
+
   .btn-submit {
     width: 100%;
     padding: 12px;
@@ -185,8 +208,8 @@
     background: none;
     border: 1px solid #d0d0d0;
     border-radius: 6px;
-    padding: 4px 12px;
-    font-size: 16px;
+    padding: 8px 20px;
+    font-size: 22px;
     cursor: pointer;
     color: #4a90d9;
     transition: background 0.15s;
@@ -428,8 +451,10 @@
 
       <div class="form-group">
         <label>借用天數</label>
-        <div class="days-input-wrapper">
-          <input type="number" id="daysInput" value="1" min="1" max="30">
+        <div class="days-buttons">
+          <button class="day-btn active" data-days="1">1 天</button>
+          <button class="day-btn" data-days="2">2 天</button>
+          <button class="day-btn" data-days="3">3 天</button>
         </div>
       </div>
 
@@ -481,6 +506,7 @@
 let currentYear = 2026;
 let currentMonth = 6; // 0-based (6 = 七月)
 let selectedRoom = '二房';
+let selectedDays = 1;
 let records = [];
 
 // DOM refs
@@ -489,8 +515,8 @@ const calGrid = document.getElementById('calendarGrid');
 const prevBtn = document.getElementById('prevMonth');
 const nextBtn = document.getElementById('nextMonth');
 const roomBtns = document.querySelectorAll('.room-btn');
+const dayBtns = document.querySelectorAll('.day-btn');
 const startDateInput = document.getElementById('startDate');
-const daysInput = document.getElementById('daysInput');
 const submitBtn = document.getElementById('btnSubmit');
 const recordList = document.getElementById('recordList');
 const btnExport = document.getElementById('btnExport');
@@ -758,7 +784,7 @@ function showToast(msg, type = 'success') {
 async function handleSubmit() {
   const name = selectedRoom;
   const startDate = startDateInput.value;
-  const days = parseInt(daysInput.value) || 1;
+  const days = selectedDays;
 
   if (!startDate) {
     showToast('請選擇開始借用日期', 'error');
@@ -854,6 +880,15 @@ async function init() {
     });
   });
 
+  // 天數按鈕
+  dayBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      dayBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      selectedDays = parseInt(this.dataset.days);
+    });
+  });
+
   // 月曆導航
   prevBtn.addEventListener('click', function() {
     currentMonth--;
@@ -878,11 +913,6 @@ async function init() {
 
   // 提交
   submitBtn.addEventListener('click', handleSubmit);
-
-  // Enter 提交
-  daysInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') handleSubmit();
-  });
 
   // 匯出
   btnExport.addEventListener('click', exportJSON);
