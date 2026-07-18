@@ -477,7 +477,7 @@
   <!-- 下方：記錄 + 資料管理 -->
   <div class="bottom-section">
     <div class="record-card">
-      <h3>📋 最近五筆借車記錄</h3>
+      <h3>📋 借車記錄 <span id="recordCount" style="font-size:13px;color:#888;font-weight:400;"></span></h3>
       <ul class="record-list" id="recordList">
         <li class="empty-state">載入中...</li>
       </ul>
@@ -711,17 +711,20 @@ function renderCalendar() {
 function renderRecords() {
   if (records.length === 0) {
     recordList.innerHTML = '<li class="empty-state">目前尚無借車記錄</li>';
+    document.getElementById('recordCount').textContent = '';
     return;
   }
+
+  // 顯示總筆數
+  document.getElementById('recordCount').textContent = `(${records.length} 筆)`;
 
   // 排序：依開始日期最新的在前
   const sorted = [...records].sort((a, b) => {
     return b.startDate.localeCompare(a.startDate);
   });
 
-  const latest = sorted.slice(0, 5);
   let html = '';
-  for (const r of latest) {
+  for (const r of sorted) {
     const sd = parseDateStr(r.startDate);
     const startD = new Date(sd.year, sd.month, sd.day);
     const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
