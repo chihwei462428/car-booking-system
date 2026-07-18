@@ -478,6 +478,10 @@
   <div class="bottom-section">
     <div class="record-card">
       <h3>📋 借車記錄 <span id="recordCount" style="font-size:13px;color:#888;font-weight:400;"></span></h3>
+      <div id="recordFilter" style="font-size:12px;color:#888;margin-bottom:8px;display:none;">
+        <span id="filterLabel"></span>
+        <button id="clearFilter" style="background:none;border:none;color:#4a90d9;cursor:pointer;font-size:12px;">✕ 清除篩選</button>
+      </div>
       <ul class="record-list" id="recordList">
         <li class="empty-state">載入中...</li>
       </ul>
@@ -509,6 +513,7 @@ let currentYear = 2026;
 let currentMonth = 6; // 0-based (6 = 七月)
 let selectedRoom = '二房';
 let selectedDays = 1;
+let filterDate = null; // 日曆篩選日期
 let records = [];
 
 // DOM refs
@@ -523,6 +528,9 @@ const submitBtn = document.getElementById('btnSubmit');
 const recordList = document.getElementById('recordList');
 const btnExport = document.getElementById('btnExport');
 const fileInput = document.getElementById('fileInput');
+const clearFilter = document.getElementById('clearFilter');
+const filterLabel = document.getElementById('filterLabel');
+const recordFilter = document.getElementById('recordFilter');
 const toast = document.getElementById('toast');
 
 // ============================================================
@@ -701,6 +709,12 @@ function renderCalendar() {
       const dateStr = this.dataset.date;
       startDateInput.value = dateStr;
       renderCalendar(); // 刷新選中狀態
+      // 設定篩選日期並刷新記錄列表
+      const d = parseDateStr(dateStr);
+      if (d) {
+        filterDate = d;
+        renderRecords();
+      }
     });
   });
 }
@@ -709,17 +723,33 @@ function renderCalendar() {
 // 記錄列表渲染
 // ============================================================
 function renderRecords() {
-  if (records.length === 0) {
+  // 如果有篩選日期，只顯示該日有重疊的記錄
+  let displayRecords = records;
+  if (filterDate) {
+    displayRecords = records.filter(r => {
+      const s = parseDateStr(r.startDate);
+      const start = new Date(s.year, s.month, s.day);
+      const end = new Date(s.year, s.month, s.day + r.days - 1);
+      const check = new Date(filterDate.year, filterDate.month, filterDate.day);
+      return check >= start && check <= end;
+    });
+    filterLabel.textContent = `📅 ${filterDate.year}-${String(filterDate.month+1).padStart(2,'0')}-${String(filterDate.day).padStart(2,'0')} 的記錄`;
+    recordFilter.style.display = 'block';
+  } else {
+    recordFilter.style.display = 'none';
+  }
+
+  if (displayRecords.length === 0) {
     recordList.innerHTML = '<li class="empty-state">目前尚無借車記錄</li>';
-    document.getElementById('recordCount').textContent = '';
+    document.getElementById('recordCount').textContent = filterDate ? '(無記錄)' : '';
     return;
   }
 
   // 顯示總筆數
-  document.getElementById('recordCount').textContent = `(${records.length} 筆)`;
+  document.getElementById('recordCount').textContent = `(${displayRecords.length} 筆)`;
 
   // 排序：依開始日期最新的在前
-  const sorted = [...records].sort((a, b) => {
+  const sorted = [...displayRecords].sort((a, b) => {
     return b.startDate.localeCompare(a.startDate);
   });
 
@@ -922,6 +952,10 @@ async function init() {
 
   submitBtn.addEventListener('click', handleSubmit);
   btnExport.addEventListener('click', exportJSON);
+  clearFilter.addEventListener('click', function() {
+    filterDate = null;
+    renderRecords();
+  });
   fileInput.addEventListener('change', function(e) {
     if (this.files && this.files[0]) {
       importJSON(this.files[0]);
