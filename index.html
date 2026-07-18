@@ -555,6 +555,7 @@ async function fetchRecords() {
     const data = await res.json();
     if (data.success) {
       records = data.records.map(r => ({
+        id: r.id,
         name: r.name,
         startDate: (function(d) {
             // 處理時區偏移：UTC 轉台灣時間 (+8)
