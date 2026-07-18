@@ -393,6 +393,7 @@
   .toast.show { opacity: 1; }
   .toast.success { background: #27ae60; }
   .toast.error { background: #e74c3c; }
+  .toast.loading { background: #4a90d9; }
 
   /* 空狀態 */
   .empty-state {
@@ -754,12 +755,13 @@ function renderRecords() {
       const sheetId = parseInt(this.dataset.sheetid);
       if (isNaN(sheetId)) return;
       if (confirm('確定刪除此筆借車記錄？')) {
+        showToast('⏳ 刪除中...', 'loading');
         try {
           await deleteRecord(sheetId);
           await fetchRecords();
           renderCalendar();
           renderRecords();
-          showToast('已刪除記錄', 'success');
+          showToast('🗑 已刪除記錄', 'success');
         } catch(e) {
           showToast('❌ 刪除失敗', 'error');
         }
@@ -805,7 +807,8 @@ async function handleSubmit() {
   }
 
   submitBtn.disabled = true;
-  submitBtn.textContent = '送出中...';
+  submitBtn.textContent = '登記中...';
+  showToast('⏳ 登記中...', 'loading');
 
   // 先在前端加入記錄，不用等 API 回傳
   records.push({
@@ -819,6 +822,9 @@ async function handleSubmit() {
   renderRecords();
   showToast(`✅ ${name} 借車登記成功！${startDate} 起 ${days} 天`, 'success');
 
+  submitBtn.disabled = false;
+  submitBtn.textContent = '確定登記借車';
+
   try {
     await addRecord(name, startDate, days);
     await fetchRecords(); // 重新抓資料拿到 id
@@ -826,9 +832,6 @@ async function handleSubmit() {
     renderRecords();
   } catch(e) {
     showToast('⚠ 已登記，但同步資料庫失敗：' + e.message, 'error');
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = '確定登記借車';
   }
 }
 
