@@ -510,20 +510,69 @@ function daysInMonth(year, month) {
 }
 
 // ============================================================
-// 資料儲存 (localStorage)
+// API 設定 (Google Apps Script)
 // ============================================================
-function saveRecords() {
-  localStorage.setItem('carBookingRecords', JSON.stringify(records));
+const API_URL = 'https://script.google.com/macros/s/AKfycbwPRnBCbazCNLMRwrIAmpoGvZwnS2hlr9-FM7OjLqBP0rtCFy2pSIRbyd2f9gNkNlcJUg/exec';
+
+async function fetchRecords() {
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    if (data.success) {
+      records = data.records.map(r => ({
+        name: r.name,
+        startDate: (function(d) {
+            // 處理時區偏移：UTC 轉台灣時間 (+8)
+            if (!d) return '';
+            var dt = new Date(d);
+            if (!isNaN(dt.getTime())) {
+              dt.setHours(dt.getHours() + 8);
+              return dt.toISOString().slice(0, 10);
+            }
+            return d.slice(0, 10);
+          })(r.startDate),
+        days: Number(r.days),
+        createdAt: r.createdAt,
+        status: r.status || 'active'
+      }));
+    }
+  } catch(e) {
+    console.error('讀取失敗', e);
+    showToast('❌ 無法連線資料庫，請確認網路', 'error');
+  }
 }
 
+async function addRecord(name, startDate, days) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'add',
+      name: name,
+      startDate: startDate,
+      days: days
+    })
+  });
+  const data = await res.json();
+  if (!data.success) throw new Error(data.error);
+  return data;
+}
+
+async function deleteRecord(id) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'delete',
+      id: id
+    })
+  });
+  const data = await res.json();
+  if (!data.success) throw new Error(data.error);
+  return data;
+}
+
+// 為了相容歷史紀錄，保留一個本地回退
 function loadRecords() {
-  const raw = localStorage.getItem('carBookingRecords');
-  if (raw) {
-    try { records = JSON.parse(raw); } catch(e) { records = []; }
-  } else {
-    // 初次使用：從歷史紀錄.json 導入
-    records = [];
-  }
+  records = [];
 }
 
 // ============================================================
@@ -665,14 +714,18 @@ function renderRecords() {
 
   // 綁定刪除事件
   document.querySelectorAll('.btn-delete').forEach(btn => {
-    btn.addEventListener('click', function() {
+    btn.addEventListener('click', async function() {
       const idx = parseInt(this.dataset.index);
       if (confirm('確定刪除此筆借車記錄？')) {
-        records.splice(idx, 1);
-        saveRecords();
-        renderCalendar();
-        renderRecords();
-        showToast('已刪除記錄', 'success');
+        try {
+          await deleteRecord(idx);
+          await fetchRecords();
+          renderCalendar();
+          renderRecords();
+          showToast('已刪除記錄', 'success');
+        } catch(e) {
+          showToast('❌ 刪除失敗：' + e.message, 'error');
+        }
       }
     });
   });
@@ -694,7 +747,7 @@ function showToast(msg, type = 'success') {
 // ============================================================
 // 提交借車
 // ============================================================
-function handleSubmit() {
+async function handleSubmit() {
   const name = selectedRoom;
   const startDate = startDateInput.value;
   const days = parseInt(daysInput.value) || 1;
@@ -714,17 +767,21 @@ function handleSubmit() {
     return;
   }
 
-  records.push({
-    name: name,
-    startDate: startDate,
-    days: days,
-    createdAt: new Date().toISOString()
-  });
+  submitBtn.disabled = true;
+  submitBtn.textContent = '送出中...';
 
-  saveRecords();
-  renderCalendar();
-  renderRecords();
-  showToast(`✅ ${name} 借車登記成功！${startDate} 起 ${days} 天`, 'success');
+  try {
+    await addRecord(name, startDate, days);
+    await fetchRecords();
+    renderCalendar();
+    renderRecords();
+    showToast(`✅ ${name} 借車登記成功！${startDate} 起 ${days} 天`, 'success');
+  } catch(e) {
+    showToast('❌ 登記失敗：' + e.message, 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = '確定登記借車';
+  }
 }
 
 // ============================================================
@@ -770,52 +827,9 @@ function importJSON(file) {
 // ============================================================
 // 初始化
 // ============================================================
-function init() {
-  loadRecords();
-
-  // 初回使用：從歷史紀錄預載
-  if (records.length === 0) {
-    const defaultRecords = [
-      {"name":"二房","startDate":"2026-08-30","days":1,"createdAt":"2026-07-18T06:36:08.030Z"},
-      {"name":"二房","startDate":"2026-08-01","days":1,"createdAt":"2026-07-18T06:36:00.616Z"},
-      {"name":"三房","startDate":"2026-07-18","days":1,"createdAt":"2026-07-07T12:16:40.471Z"},
-      {"name":"三房","startDate":"2026-07-16","days":2,"createdAt":"2026-07-07T12:16:26.883Z"},
-      {"name":"三房","startDate":"2026-07-13","days":1,"createdAt":"2026-07-07T12:16:17.995Z"},
-      {"name":"大房","startDate":"2026-07-12","days":1,"createdAt":"2026-07-07T12:16:05.461Z"},
-      {"name":"二房","startDate":"2026-07-04","days":2,"createdAt":"2026-05-21T12:08:22.629Z"},
-      {"name":"大房","startDate":"2026-06-03","days":1,"createdAt":"2026-05-21T11:35:16.522Z"},
-      {"name":"三房","startDate":"2026-06-28","days":2,"createdAt":"2026-05-21T11:35:07.346Z"},
-      {"name":"三房","startDate":"2026-05-26","days":3,"createdAt":"2026-05-21T11:34:28.012Z"},
-      {"name":"二房","startDate":"2026-05-23","days":2,"createdAt":"2026-05-21T11:34:17.768Z"},
-      {"name":"二房","startDate":"2026-05-16","days":1,"createdAt":"2026-05-15T00:00:45.462Z"},
-      {"name":"大房","startDate":"2026-05-20","days":1,"createdAt":"2026-05-12T12:21:38.853Z"},
-      {"name":"三房","startDate":"2026-08-15","days":2,"createdAt":"2026-03-03T04:23:46.677Z"},
-      {"name":"三房","startDate":"2026-07-25","days":2,"createdAt":"2026-02-28T01:34:21.028Z"},
-      {"name":"三房","startDate":"2026-03-23","days":1,"createdAt":"2026-03-13T07:24:06.597Z"},
-      {"name":"大房","startDate":"2026-04-12","days":1,"createdAt":"2026-04-10T14:19:16.029Z"},
-      {"name":"大房","startDate":"2026-04-26","days":1,"createdAt":"2026-04-10T14:19:03.617Z"},
-      {"name":"二房","startDate":"2026-04-10","days":1,"createdAt":"2026-03-31T22:52:53.648Z"},
-      {"name":"二房","startDate":"2026-03-21","days":1,"createdAt":"2026-03-17T11:48:00.127Z"},
-      {"name":"大房","startDate":"2026-04-19","days":1,"createdAt":"2026-03-13T11:44:59.070Z"},
-      {"name":"三房","startDate":"2026-06-15","days":2,"createdAt":"2026-05-21T11:34:54.474Z"},
-      {"name":"三房","startDate":"2026-03-14","days":2,"createdAt":"2026-02-02T10:37:40.532Z"},
-      {"name":"三房","startDate":"2026-03-09","days":4,"createdAt":"2026-01-22T05:45:57.364Z"},
-      {"name":"二房","startDate":"2026-02-19","days":1,"createdAt":"2026-02-05T13:47:13.483Z"},
-      {"name":"二房","startDate":"2026-02-07","days":2,"createdAt":"2025-11-30T12:45:45.397Z"},
-      {"name":"三房","startDate":"2025-11-26","days":1,"createdAt":"2025-11-25T04:40:48.894Z"},
-      {"name":"大房","startDate":"2025-11-01","days":2,"createdAt":"2025-11-24T16:00:56.581Z"},
-      {"name":"二房","startDate":"2025-11-15","days":1,"createdAt":"2025-11-24T16:00:43.334Z"},
-      {"name":"二房","startDate":"2025-11-08","days":2,"createdAt":"2025-11-24T16:00:12.219Z"},
-      {"name":"大房","startDate":"2025-12-14","days":1,"createdAt":"2025-11-24T14:32:02.994Z"},
-      {"name":"三房","startDate":"2025-12-13","days":1,"createdAt":"2025-11-24T14:31:56.812Z"},
-      {"name":"二房","startDate":"2026-01-28","days":2,"createdAt":"2025-11-24T15:08:43.427Z"},
-      {"name":"大房","startDate":"2026-01-10","days":2,"createdAt":"2025-11-24T14:32:19.064Z"},
-      {"name":"三房","startDate":"2026-05-01","days":3,"createdAt":"2026-02-25T02:46:27.405Z"},
-      {"name":"大房","startDate":"2026-03-08","days":1,"createdAt":"2026-02-28T04:27:18.096Z"}
-    ];
-    records = defaultRecords;
-    saveRecords();
-  }
+async function init() {
+  // 從 Google Sheets 載入資料
+  await fetchRecords();
 
   // 設定預設日期為今天
   const today = new Date();
@@ -878,7 +892,7 @@ function init() {
 }
 
 // 頁面載入完成
-init();
+init().catch(e => console.error('初始化失敗', e));
 </script>
 </body>
 </html>
