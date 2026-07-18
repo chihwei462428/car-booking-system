@@ -384,6 +384,8 @@
     .bottom-section { grid-template-columns: 1fr; }
     .app-container { padding: 0; }
     body { padding: 10px; }
+    .calendar-card { overflow-x: auto; }
+    .calendar-grid { min-width: 280px; }
   }
 </style>
 </head>
@@ -719,7 +721,7 @@ function renderRecords() {
       if (confirm('確定刪除此筆借車記錄？')) {
         try {
           await deleteRecord(idx);
-          await fetchRecords();
+          records.splice(idx, 1);
           renderCalendar();
           renderRecords();
           showToast('已刪除記錄', 'success');
