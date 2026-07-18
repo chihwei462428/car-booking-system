@@ -713,9 +713,9 @@ function renderRecords() {
     return;
   }
 
-  // 排序：最新的在前
+  // 排序：依開始日期最新的在前
   const sorted = [...records].sort((a, b) => {
-    return new Date(b.createdAt) - new Date(a.createdAt);
+    return b.startDate.localeCompare(a.startDate);
   });
 
   const latest = sorted.slice(0, 5);
@@ -758,9 +758,10 @@ function renderRecords() {
         renderCalendar();
         renderRecords();
         showToast('已刪除記錄', 'success');
-        // 背景同步刪除到試算表
+        // 背景同步刪除到試算表後重新整理資料
         try {
           if (sheetId) await deleteRecord(sheetId);
+          await fetchRecords(); // 重新抓確保同步
         } catch(e) {
           console.error('刪除同步失敗', e);
         }
@@ -874,14 +875,18 @@ function importJSON(file) {
 // 初始化
 // ============================================================
 async function init() {
-  // 從 Google Sheets 載入資料
-  await fetchRecords();
-
-  // 設定預設日期為今天
+  // 先設定預設日期和基本渲染
   const today = new Date();
   startDateInput.value = toDateStr(today.getFullYear(), today.getMonth(), today.getDate());
   currentYear = today.getFullYear();
   currentMonth = today.getMonth();
+  renderCalendar();
+  renderRecords();
+
+  // 載入 Google Sheets 資料後重新渲染
+  await fetchRecords();
+  renderCalendar();
+  renderRecords();
 
   // room 按鈕
   roomBtns.forEach(btn => {
