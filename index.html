@@ -804,14 +804,22 @@ async function handleSubmit() {
   submitBtn.disabled = true;
   submitBtn.textContent = '送出中...';
 
+  // 先在前端加入記錄，不用等 API 回傳
+  records.push({
+    name: name,
+    startDate: startDate,
+    days: days,
+    createdAt: new Date().toISOString(),
+    status: 'active'
+  });
+  renderCalendar();
+  renderRecords();
+  showToast(`✅ ${name} 借車登記成功！${startDate} 起 ${days} 天`, 'success');
+
   try {
     await addRecord(name, startDate, days);
-    await fetchRecords();
-    renderCalendar();
-    renderRecords();
-    showToast(`✅ ${name} 借車登記成功！${startDate} 起 ${days} 天`, 'success');
   } catch(e) {
-    showToast('❌ 登記失敗：' + e.message, 'error');
+    showToast('⚠ 已登記，但同步資料庫失敗：' + e.message, 'error');
   } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = '確定登記借車';
