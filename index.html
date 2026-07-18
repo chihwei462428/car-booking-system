@@ -757,11 +757,12 @@ function renderRecords() {
       if (confirm('確定刪除此筆借車記錄？')) {
         try {
           await deleteRecord(sheetId);
+          await fetchRecords();
+          renderCalendar();
+          renderRecords();
           showToast('已刪除記錄', 'success');
-          // 重新載入確保完全同步
-          window.location.reload();
         } catch(e) {
-          showToast('❌ 刪除失敗：' + e.message, 'error');
+          showToast('❌ 刪除失敗', 'error');
         }
       }
     });
@@ -873,20 +874,7 @@ function importJSON(file) {
 // 初始化
 // ============================================================
 async function init() {
-  // 先設定預設日期和基本渲染
-  const today = new Date();
-  startDateInput.value = toDateStr(today.getFullYear(), today.getMonth(), today.getDate());
-  currentYear = today.getFullYear();
-  currentMonth = today.getMonth();
-  renderCalendar();
-  renderRecords();
-
-  // 載入 Google Sheets 資料後重新渲染
-  await fetchRecords();
-  renderCalendar();
-  renderRecords();
-
-  // room 按鈕
+  // 先綁定所有事件
   roomBtns.forEach(btn => {
     btn.addEventListener('click', function() {
       roomBtns.forEach(b => b.classList.remove('active'));
@@ -895,7 +883,6 @@ async function init() {
     });
   });
 
-  // 天數按鈕
   dayBtns.forEach(btn => {
     btn.addEventListener('click', function() {
       dayBtns.forEach(b => b.classList.remove('active'));
@@ -904,7 +891,6 @@ async function init() {
     });
   });
 
-  // 月曆導航
   prevBtn.addEventListener('click', function() {
     currentMonth--;
     if (currentMonth < 0) { currentMonth = 11; currentYear--; }
@@ -916,7 +902,6 @@ async function init() {
     renderCalendar();
   });
 
-  // 日期輸入變更時刷新日曆
   startDateInput.addEventListener('change', function() {
     const d = parseDateStr(this.value);
     if (d) {
@@ -926,20 +911,24 @@ async function init() {
     }
   });
 
-  // 提交
   submitBtn.addEventListener('click', handleSubmit);
-
-  // 匯出
   btnExport.addEventListener('click', exportJSON);
-
-  // 匯入
   fileInput.addEventListener('change', function(e) {
     if (this.files && this.files[0]) {
       importJSON(this.files[0]);
     }
   });
 
-  // 初始渲染
+  // 先顯示基本畫面
+  const today = new Date();
+  startDateInput.value = toDateStr(today.getFullYear(), today.getMonth(), today.getDate());
+  currentYear = today.getFullYear();
+  currentMonth = today.getMonth();
+  renderCalendar();
+  renderRecords();
+
+  // 再載入資料
+  await fetchRecords();
   renderCalendar();
   renderRecords();
 }
