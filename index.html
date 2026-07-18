@@ -755,20 +755,13 @@ function renderRecords() {
       const sheetId = this.dataset.sheetid ? parseInt(this.dataset.sheetid) : null;
       if (!sheetId) return;
       if (confirm('確定刪除此筆借車記錄？')) {
-        records.splice(idx, 1);
-        renderCalendar();
-        renderRecords();
-        showToast('已刪除記錄', 'success');
         try {
           await deleteRecord(sheetId);
-          await fetchRecords(); // 重新抓讓 id 完全同步
-          renderCalendar();
-          renderRecords();
+          showToast('已刪除記錄', 'success');
+          // 重新載入確保完全同步
+          window.location.reload();
         } catch(e) {
-          console.error('刪除同步失敗', e);
-          await fetchRecords(); // 失敗也重新抓
-          renderCalendar();
-          renderRecords();
+          showToast('❌ 刪除失敗：' + e.message, 'error');
         }
       }
     });
